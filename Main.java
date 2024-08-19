@@ -1,9 +1,12 @@
-package ru.gb.lisson2_dz;
+package ru.gb.lisson1_dz;
+
+import ru.gb.lisson1_dz.client.ClientGUI;
+import ru.gb.lisson1_dz.server.ServerWindow;
 
 public class Main {
     public static void main(String[] args) {
-        SimpleGenericClass simpleGenericClass = new SimpleGenericClass();
-        simpleGenericClass.sumElements(5, 5);
-        simpleGenericClass.sumElements("Hello ", "World!");
+        ServerWindow serverWindow = new ServerWindow();
+        new ClientGUI(serverWindow);
+        new ClientGUI(serverWindow);
     }
 }
