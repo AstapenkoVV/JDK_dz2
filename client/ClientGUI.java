@@ -1,122 +1,143 @@
-package ru.gb.lisson1_dz.client;
-
-import ru.gb.lisson1_dz.server.ServerWindow;
+package ru.gb.lisson2_dz.client;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
-import java.util.Date;
 
-public class ClientGUI extends JFrame {
-    private static final int POS_X = 1000;
-    private static final int POS_Y = 550;
+public class ClientGUI extends JFrame implements ClientView {
     private static final int WIDTH = 400;
     private static final int HEIGHT = 300;
-    private Date date = new Date();
 
-    ServerWindow serverWindow;
-    private boolean connected;
-    private String name;
+    private JTextArea log;
+    private JTextField tfIPAddress, tfPort, tfLogin, tfMessage;
+    private JPasswordField password;
+    private JButton btnLogin, btnSend;
+    private JPanel headerPanel;
+    private ClientController clientController;
 
-    JTextArea log;
-    JTextField ipAddress, port, login, message;
-    JPasswordField password;
-    JButton btnLogin, btnSend;
-    private JPanel loginPanel;
-
-    public ClientGUI(ServerWindow serverWindow) {
-        this.serverWindow = serverWindow;
-
-        setSize(WIDTH, HEIGHT);
-        setResizable(false);
-        setTitle("Client");
-        setLocation(POS_X, POS_Y);
-
+    /**@apiNote
+     * Конструктор графического интерфейса клиента
+     */
+    public ClientGUI() {
+        setting();
         createPanel();
+
         setVisible(true);
     }
 
-    public void answer(String message) {
-        appendLog(message);
+    /**@apiNote
+     * Метод для настройки окна клиента
+     */
+    private void setting() {
+        setSize(WIDTH, HEIGHT);
+        setResizable(false);
+        setTitle("Chat client");
+        setDefaultCloseOperation(HIDE_ON_CLOSE);
     }
 
-    private void connectToServer() {
-        if (serverWindow.connectUser(this)) {
-            appendLog("Вы успешно подключились к серверу\n");
-            loginPanel.setVisible(false);
-            connected = true;
-            name = login.getText();
-            String log = serverWindow.getLog();
-            if (log != null) {
-                appendLog(log);
-            } else {
-                appendLog("Подключение не удалось!");
-            }
-        }
+    /**@apiNote
+     * Вызываемый из контроллера метод вывода текста в графический интерфейс
+     * @param msg текст сообщения
+     */
+    @Override
+    public void showMessage(String msg) {
+        log.append(msg + "\n");
     }
 
+    /**@apiNote
+     * Метод для отключения сервера от клиента
+     */
+    @Override
+    public void disconnectedFromServer() {
+        setHeaderPanelVisible(true);
+    }
+
+    /**@apiNote
+     * Метод для отключения клиента от сервера
+     */
     public void disconnectFromServer() {
-        if (connected) {
-            loginPanel.setVisible(true);
-            connected = false;
-            serverWindow.disconnectUser(this);
-            appendLog("Вы были отключены от сервера!");
+        clientController.disconnectFromServer();
+    }
+
+    /**@apiNote
+     * Метод управления видимостью панели подключения к серверу
+     * @param visible true - панель видима, false - панель невидима
+     */
+    public void setHeaderPanelVisible(boolean visible) {
+        headerPanel.setVisible(visible);
+    }
+
+    /**@apiNote
+     * Метод для подключения клиента к серверу
+     */
+    public void login() {
+        if (clientController.connectToServer(tfLogin.getText())) {
+            setHeaderPanelVisible(false);
         }
     }
 
+    /**@apiNote
+     * Метод отправки сообщений при нажатии на кнопку "Send" или Enter.
+     */
     private void message() {
-        if (connected) {
-            String text = message.getText();
-            if (!text.equals("")) {
-                serverWindow.message(name + ": " + text);
-                message.setText("");
-            }
-        } else {
-            appendLog("Нет подключения к серверу!");
-        }
+        clientController.message(tfMessage.getText());
+        tfMessage.setText("");
     }
 
-    private void appendLog(String test) {
-        log.setText(date + ": " + test + "\n");
-    }
-
+    /**@apiNote
+     * Метод создания панели с виджетами
+     */
     private void createPanel() {
         add(createHeaderPanel(), BorderLayout.NORTH);
         add(createLog());
-        add(createFooterPanel(), BorderLayout.SOUTH);
+        add(createFooter(), BorderLayout.SOUTH);
     }
+
+    /**@apiNote
+     * Метод создания панели с текстовыми полями для проведения авторизации
+     * @return Возвращает панель авторизации
+     */
     private Component createHeaderPanel() {
-        loginPanel = new JPanel(new GridLayout(2, 3));
-        ipAddress = new JTextField("127.0.0.1");
-        port = new JTextField("8040");
-        login = new JTextField("Vladimir");
-        password = new JPasswordField("123");
+        headerPanel = new JPanel(new GridLayout(2, 3));
+        tfIPAddress = new JTextField("127.0.0.1");
+        tfPort = new JTextField("8189");
+        tfLogin = new JTextField("rk");
+        password = new JPasswordField("123456");
         btnLogin = new JButton("login");
         btnLogin.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                connectToServer();
+                login();
             }
         });
-        loginPanel.add(ipAddress);
-        loginPanel.add(port);
-        loginPanel.add(new JPanel());
-        loginPanel.add(login);
-        loginPanel.add(password);
-        loginPanel.add(btnLogin);
-        return loginPanel;
+
+        headerPanel.add(tfIPAddress);
+        headerPanel.add(tfPort);
+        headerPanel.add(new JPanel());
+        headerPanel.add(tfLogin);
+        headerPanel.add(password);
+        headerPanel.add(btnLogin);
+
+        return headerPanel;
     }
 
+    /**@apiNote
+     * Метод создания области отображения сообщений
+     * @return возвращает область сообщений
+     */
     private Component createLog() {
         log = new JTextArea();
         log.setEditable(false);
         return new JScrollPane(log);
     }
-
-    private Component createFooterPanel() {
-        JPanel footerPanel = new JPanel(new BorderLayout());
-        message = new JTextField();
-        message.addKeyListener(new KeyAdapter() {
+    /**@apiNote
+     * Метод создания панели для сообщений
+     * @return возвращает панель
+     */
+    private Component createFooter() {
+        JPanel panel = new JPanel(new BorderLayout());
+        tfMessage = new JTextField();
+        tfMessage.addKeyListener(new KeyAdapter() {
             @Override
             public void keyTyped(KeyEvent e) {
                 if (e.getKeyChar() == '\n') {
@@ -124,25 +145,36 @@ public class ClientGUI extends JFrame {
                 }
             }
         });
-
-        btnSend = new JButton("send");
+        btnSend = new JButton("Send");
         btnSend.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 message();
             }
         });
-
-        footerPanel.add(message);
-        footerPanel.add(btnSend, BorderLayout.EAST);
-        return footerPanel;
+        panel.add(tfMessage);
+        panel.add(btnSend, BorderLayout.EAST);
+        return panel;
     }
 
+    /**@apiNote
+     * Метод срабатывающий при важных событиях, связанных с графическим окном (например, закрытие окна)
+     * @param e  событие окна
+     */
     @Override
     protected void processWindowEvent(WindowEvent e) {
-        if (e.getID() == WindowEvent.WINDOW_CLOSING) {
-            disconnectFromServer();
-        }
         super.processWindowEvent(e);
+        if (e.getID() == WindowEvent.WINDOW_CLOSING) {
+            this.disconnectFromServer();
+        }
+    }
+
+    /**@apiNote
+     * Метод создания контроллера в графическом интерфейсе
+     * @param clientController контроллер клиента
+     */
+    @Override
+    public void setClientController(ClientController clientController) {
+        this.clientController = clientController;
     }
 }
